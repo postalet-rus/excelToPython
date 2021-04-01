@@ -37,7 +37,7 @@ class ExcelReader:
 
     def readBook(self):
         wb = openpyxl.load_workbook(self.path_to_file)
-        self.current_sheet = wb['Журнал активности']
+        self.current_sheet = wb.worksheets[0]
 
     def sqlite_init(self):
         try:
