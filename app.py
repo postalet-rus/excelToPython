@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import filedialog, messagebox
 from typing import Text
 from db_worker import DBWorker
 from excel_engine import ExcelReader
@@ -47,16 +48,25 @@ class MainApplication(tk.Frame):
 	def __init__(self, parent):
 		tk.Frame.__init__(self, parent)
 		self.parent = parent
-		self.excel_book = ExcelReader("./zhurnal_aktivnosti.xlsx")
+		if not DBWorker.check_db("tmp.db"):
+			dialog = filedialog.askopenfile("r", title="Выбор книги Excel",
+													filetypes=[("Книги Excel", ".xlsx .xls")]
+											)
+			if dialog:
+				self.excel_book = ExcelReader(dialog.name)
+			else:
+				exit()
+
 		self.dbworker = DBWorker("tmp.db")
 		self.initUI()
 		self.load_data_to_table()
 
 		style = ttk.Style()
 		style.map('Treeview', foreground=self.fixed_map(style, 'foreground'),
-  			background=self.fixed_map(style, 'background'), rowheight=self.fixed_map(style, 'rowheight'))
+			background=self.fixed_map(style, 'background'), rowheight=self.fixed_map(style, 'rowheight'))
 		style.configure("Treeview.Heading", padding=25)
 		style.configure("Treeview.Heading", font=(None, 8))
+			
 
 	def initUI(self):
 		col_width = round(self.parent.winfo_screenwidth()/5)
@@ -128,6 +138,7 @@ class MainApplication(tk.Frame):
 					self.list_box.insert("", "end", values=(ip,spm,rpm,rp5m,ua), tag="safe")
 					
 		else:
+			tk.messagebox.showerror("Ошибка", "Data list is not exists")
 			print("\033[91mData list is not exists\033[0m")
 
 

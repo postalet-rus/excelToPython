@@ -1,5 +1,6 @@
 import sqlite3
 import re
+from tkinter import messagebox
 from pathlib import Path
 
 
@@ -33,6 +34,13 @@ class DBWorker:
             data = self.cursor.fetchall()    
             self.close_connection()
             return data
+        else: 
+            print("\033[96mCursor object doesn't exists (db_worker)\033[0m")
+            try:
+                self.close_connection()
+            except:
+                print("\033[96mFatal error has occured\033[0m")
+                raise OSError
 
     @staticmethod
     def check_db(db_name) -> bool:
@@ -40,7 +48,7 @@ class DBWorker:
             print("\033[96mDatabase file already exists\033[0m")
             return True
         else:
-            print("\033[91mDatabase file doesn't exists\033[0m")    
+            print("\033[91mDatabase file doesn't exists attempting to create one from excel\033[0m")    
             return False
 
     def open_connection(self):
@@ -52,9 +60,11 @@ class DBWorker:
                 print("database has been successfully connected")
 
             except sqlite3.Error as error:
+                messagebox.showerror("Ошибка", "An error has occured when trying connect to sqlite")
                 print(
                     f"\033[91mAn error has occured when trying connect to sqlite\n {error}\033[0m")
         else:
+            messagebox.showerror("Ошибка", "\033[91mDatabase file doesn't exists\033[0m")
             print("\033[91mDatabase file doesn't exists\033[0m")
 
     def close_connection(self):

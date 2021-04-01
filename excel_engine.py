@@ -4,6 +4,7 @@
 import openpyxl
 import sqlite3
 import sys
+from tkinter import messagebox
 
 
 def ordinal(n): return "%d%s" % (
@@ -54,9 +55,19 @@ class ExcelReader:
                 f"\033[91mAn error has occured when trying connect to sqlite\n {error}\033[0m")
 
     def get_title_columns_name(self):
+        __valid_columns_name = (
+            "IP адрес",
+            "Количество символов в минуту",
+            "Число запросов на сервер за 1 мин",
+            "Число запросов на сервер за 5 мин",
+            "Число неудачных попыток входа в систему за 5 мин"
+        )
         for col in range(1, self.current_sheet.max_column + 1):
-            self.sheet_headers.append(
-                self.current_sheet.cell(row=1, column=col).value)
+            if __valid_columns_name[col - 1] == self.current_sheet.cell(row=1, column=col).value:
+                self.sheet_headers.append(self.current_sheet.cell(row=1, column=col).value)
+            else:
+                messagebox.showerror("Ошибка", "Неверный формат книги Excel")
+                raise OSError
 
     def create_data_table(self):
         print("Starting to create main table...")
@@ -81,25 +92,38 @@ class ExcelReader:
         __cursor = self.conn.cursor()
         cs = self.current_sheet
         tmp_row = 0
+        errored_counter = 0
         try:
             for row in range(2, self.current_sheet.max_row + 1):
                 tmp_row = row - 1
+
                 if not __cursor.execute("SELECT * FROM activity_journal WHERE ip_address ='"+cs.cell(row=row, column=1).value + "'").fetchone():
-                    entry = (row - 1,
-                             cs.cell(row=row, column=1).value,
-                             int(cs.cell(row=row, column=2).value),
-                             int(cs.cell(row=row, column=3).value),
-                             int(cs.cell(row=row, column=4).value),
-                             int(cs.cell(row=row, column=5).value))
-                    __cursor.execute(
-                        "INSERT INTO activity_journal VALUES(?, ?, ?, ?, ?, ?)", entry)
-                    self.conn.commit()
-                sys.stdout.write(f"{round(row/self.current_sheet.max_row*100)} percent complete \r")
-            print("Data successfully imported")
+                    try:
+                        entry = (row - 1,
+                                 cs.cell(row=row, column=1).value,
+                                 int(cs.cell(row=row, column=2).value) or 0,
+                                 int(cs.cell(row=row, column=3).value) or 0,
+                                 int(cs.cell(row=row, column=4).value) or 0,
+                                 int(cs.cell(row=row, column=5).value) or 0)
+                        __cursor.execute(
+                            "INSERT INTO activity_journal VALUES(?, ?, ?, ?, ?, ?)", entry)
+                        self.conn.commit()
+                    except ValueError as error:
+                        errored_counter += 1
+                        continue
+                    except TypeError as t_error:
+                        errored_counter += 1
+                        continue
+
+                sys.stdout.write(f"{round(row/self.current_sheet.max_row*100)} percent complete\r")
+            if errored_counter == 0:
+                print("\nData successfully imported")
+            else:
+                print(f"\nData imported\n\033[91m{errored_counter} entries were not imported due incompatible format\033[0m")
         except sqlite3.Error as error:
+            messagebox.showerror("Ошибка", "Error has occured when tried to insert {ordinal(tmp_row)} entry\n{error}")
             print(
                 f"\033[91mError has occured when tried to insert {ordinal(tmp_row)} entry\n{error}\033[0m")
-            
 
 def main():
     reader = ExcelReader("C:/Users/Postalet/Desktop/zhurnal_aktivnosti.xlsx")
