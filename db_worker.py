@@ -34,6 +34,15 @@ class DBWorker:
             self.close_connection()
             return data
 
+    @staticmethod
+    def check_db(db_name) -> bool:
+        if Path(Path.cwd() / db_name).is_file():
+            print("\033[96mDatabase file already exists\033[0m")
+            return True
+        else:
+            print("\033[91mDatabase file doesn't exists\033[0m")    
+            return False
+
     def open_connection(self):
         if Path(Path.cwd() / self.db_name).is_file():
             try:
